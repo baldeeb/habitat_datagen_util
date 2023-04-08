@@ -1,0 +1,28 @@
+# About local envs: 
+# - dino-3-7 is mainly used 
+# - dino-3-8 was not completetly set up or tested. 
+# - Others will slowly be depricated
+
+
+
+# conda install -c pytorch faiss-cpu faiss-gpu   # seems to require python 3.7 
+# pytorch_metric_learning==0.9.99 
+# fast_pytorch_kmeans==0.1.6 
+# timm==0.6.7 
+# scikit-image==0.17.2
+
+pip install distance-map bresenham magnum opencv-python git+https://github.com/lucasb-eyer/pydensecrf.git
+
+# conda install pytorch==1.10.0 torchvision==0.11.0 torchaudio==0.10.0 cudatoolkit=11.3 -c pytorch -c conda-forge
+# conda install -c conda-forge wandb
+# conda install -c conda-forge quaternion
+
+# cd habitat-lab && pip install -e haitat-lab && pip install -e haitat-baseline  
+
+
+# # Currently trying to use this to allow mutli-gpu usage
+# conda install habitat-sim withbullet headless -c conda-forge -c aihabitat
+
+
+# ATTEMPTED TO USE THESE TOOLS BUT ULTIMATELY SUBSTITUTED THEM 
+# pip install trimesh pyglet==1.5.27

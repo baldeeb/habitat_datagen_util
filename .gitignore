@@ -1,0 +1,17 @@
+/.ipynb_checkpoints
+/output
+
+*.png
+*.pyc
+*.npy
+*.pth
+*.model
+
+*.cpython-*
+*__pycache__*
+
+**/data/**
+**/datasets/**
+**/versioned_data/**
+.vscode
+wandb
