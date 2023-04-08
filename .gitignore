@@ -15,3 +15,6 @@
 **/versioned_data/**
 .vscode
 wandb
+
+
+/temp/

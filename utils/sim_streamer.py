@@ -4,108 +4,12 @@ import json
 import shutil
 import quaternion
 import numpy as np
-import magnum as mn
 from tqdm import tqdm
-from utils.habitat.dataset import HabitatDataloader
-from utils.habitat.nocs_tools import get_nocs_projection
-from utils.habitat.env_constrained_position_sampling  import ObjectAndRobotPoseGenerator
-
-
-def get_intrinsic_from_habitat_sensor_spec(spec):
-    Ho2, Wo2 = (spec.resolution[i]/2.0 for i in range(2))
-    hfov = float(mn.Rad(spec.hfov))
-    fy_inv = fx_inv = Wo2 / np.tan(hfov / 2.)
-    return np.array([[fx_inv,    0.,        Wo2],
-                    [0.,         fy_inv,    Ho2],
-                    [0.,         0.,        1.0]])
-
-
-class SimulatorPhysicsStepFunctor:
-    def __init__(self, sim, config):
-        self._sim, self._config = sim, config
-        self._t_end = self._sim.get_world_time() + self._config['duration']
-        self._dt = 1.0 / self._config['frequency']
-
-
-    def __len__(self):
-        # TODO: FIX THIS. always constant
-        t_remaining = self._t_end - self._sim.get_world_time()
-        return int( t_remaining * self._config['frequency'])
-    
-    def __call__(self):
-        if 'action' in self._config:
-            raise RuntimeError("not yet implemented.")
-            self._sim.step(self._config['action'], dt=self._dt)
-        else:
-            self._sim.step_physics(self._dt)
-
-    def __iter__(self): 
-        return self
-    def __next__(self):
-        if len(self) == 0: raise StopIteration
-        return self()
-
-
-class SimulatorPoseTeleportationFunction:
-    def __init__(self, sim, config):
-        self._sim, self._config = sim, config
-
-        self.rob_xyz, self.rob_t, self.obj_xyz = \
-            ObjectAndRobotPoseGenerator(sim, config)()
-        assert(self.rob_xyz.shape[1] == len(self.rob_t) == self.obj_xyz.shape[1])
-        if 'sample_count' in config:
-            top_idx = min(config['sample_count'], self.rob_xyz.shape[1])
-            self.rob_xyz = self.rob_xyz[:, :top_idx]
-            self.rob_t = self.rob_t[:top_idx]
-            self.obj_xyz = self.obj_xyz[:, :top_idx]
-
-        rom = sim.get_rigid_object_manager()
-        handles = config['object_file_handles']
-        self._objects = [rom.get_object_by_handle(h) for h in handles]
-        self._idx = 0
-
-    def __len__(self):
-        return self.rob_xyz.shape[1]
-    
-    def __call__(self):
-        if self._idx == (len(self)): raise StopIteration
-        agent = self._sim.get_agent(0)
-        state = agent.get_state()
-        state.position = self.rob_xyz[: , self._idx]
-        state.rotation = self.rob_t[self._idx]
-        agent.set_state(state)
-        
-        for obj in self._objects:
-            # TODO: have option to drop from height
-            # TODO: Make it capable of handling multiple objects
-            # TODO: add noise to pose
-            obj_position = self.obj_xyz[:, self._idx].copy()
-            obj_position[1] -= obj.collision_shape_aabb.min[1]
-
-            # obj_position[1] += 0.75 # TODO: remove. offsets object to stay on ground
-            
-            # Adds gaussian noise to the object position
-            obj_pose_noise = np.random.normal(
-                np.array([0.0, 0.0, 0.0]), 
-                np.array([0.25 * self._config['_min_obj_clearence_m'],
-                    0.0, 0.25 * self._config['_min_obj_clearence_m']]))
-            obj.translation = obj_position + obj_pose_noise
-
-            # Set rotation
-            # TODO: make this configurable
-            rand_theta = float(2*np.pi*np.random.rand())
-            obj.rotation = mn.Quaternion.rotation(mn.Rad(rand_theta), mn.Vector3([0, 1, 0]))
-
-            if 'simulate_gravity_for_s' in  self._config:
-                self._sim.step_physics(self._config['simulate_gravity_for_s'])
-        self._idx += 1
-
-    def __iter__(self): 
-        return self
-    def __next__(self):
-        if len(self) == 0: raise StopIteration
-        return self()
-
+from utils.dataset import HabitatDataset
+from utils.nocs_tools import get_nocs_projection
+from utils.sim_step_functions.teleoprt import SimulatorPoseTeleportationFunction
+from utils.sim_step_functions.physics import SimulatorPhysicsStepFunctor
+from utils.sensor_util import get_intrinsic_from_habitat_sensor_spec
 
 class SimulationDataStreamer:
     '''
@@ -146,6 +50,16 @@ class SimulationDataStreamer:
         m[0:3, 0:3] = quaternion.as_rotation_matrix(q)
         m[0:3, 3] = t
         return m
+    
+    def _get_obj_box_and_mask(self, obj, semantic_img):
+        assert(len(semantic_img.shape) == 2)
+        mask = np.zeros_like(semantic_img)
+        mask[semantic_img == obj.semantic_id] = 1
+        i, j = np.where(mask == 1)
+        box = {'min': [min(i), min(j)],
+               'max': [max(i), max(j)],}
+        return box, mask
+
 
     def __getitem__(self, _):
         if len(self) <= 0: return None
@@ -173,20 +87,22 @@ class SimulationDataStreamer:
             wTo = obj.transformation
             sTo = np.linalg.inv(wTs) @ wTo
             # aTo = np.linalg.inv(wTa) @ wTo
-
+            box, mask = self._get_obj_box_and_mask(obj, results['semantics'])
             obj_info[handle] = {
-                # 'world_T_object': wTo, 'agent_T_object': aTo,
-                'camera_T_object': sTo, 'world_T_rgb': wTs,
+                # 'world_T_object': wTo, 
+                # 'agent_T_object': aTo,
+                'camera_T_object': sTo, 
+                'world_T_rgb': wTs,
                 'camera_T_image': np.diag([1.0,  -1.0,  -1.0, 1.0]),
                 'semantic_id': obj.semantic_id,
                 'class': obj.user_attributes.get('class'),
                 'bbox':{'min': obj.collision_shape_aabb.min,
-                        'max': obj.collision_shape_aabb.max}
+                        'max': obj.collision_shape_aabb.max},
+                '2dbox': box,
                 }
+            
                 
             aabb_min, aabb_max = obj.collision_shape_aabb.min, obj.collision_shape_aabb.max
-            mask = np.zeros_like(results['semantics'])
-            mask[results['semantics'] == obj.semantic_id] = 1
             reshape_corner = lambda a :np.array(a).reshape((3, 1))
             coord = get_nocs_projection(mask, results['depth'], self._K, sTo, 
                                         reshape_corner(aabb_max), reshape_corner(aabb_min))
@@ -221,7 +137,7 @@ class SimulationDataStreamer:
         data_dict = {'episodes':[]}
         data_dict[ "source"] = "habitat"
         data_dict['meta'] = {
-            'camera_intrinsic' : matrix2d2list(self.intrinsic()),
+            'camera_intrinsic' : matrix2d2list(self._K),
             'img_format' : 'png', #'npy',
         }
 
@@ -244,7 +160,9 @@ class SimulationDataStreamer:
                     'world_T_rgb': matrix2d2list(v['world_T_rgb']),
                     'semantic_id': v['semantic_id'],
                     'bbox':{'min': nparray2list(v['bbox']['min']), 
-                            'max': nparray2list(v['bbox']['max'])}
+                            'max': nparray2list(v['bbox']['max'])},
+                    '2box':{'min': nparray2list(v['2dbox']['min']), 
+                            'max': nparray2list(v['2dbox']['max'])}
                 }
                 if 'coord' in v:
                     # coord = cv2.cvtColor(v['coord'], cv2.COLOR_RGB2BGR)
@@ -291,7 +209,7 @@ class SimulationDataStreamer:
         f = open(f'{folder}/metadata.json', 'w+')
         json.dump(data_dict, f)
         f.close()
-        return HabitatDataloader(f'{folder}/metadata.json') 
+        return HabitatDataset(f'{folder}/metadata.json') 
 
 
 

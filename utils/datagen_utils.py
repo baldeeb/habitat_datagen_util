@@ -1,16 +1,15 @@
-from glob import glob
 import os
-from os.path import join as joinpath
-from os.path import relpath
-from pathlib import Path
 import json
+from glob import glob
+from pathlib import Path
+from os.path import relpath
 
-def obj_files_generator(directory):
-    for obj_f in glob(f'{directory}/**/**.obj', recursive=True):
+def files_generator(directory, extension='obj'):
+    for obj_f in glob(f'{directory}/**/**.{extension}', recursive=True):
         yield obj_f
 
-def obj_folders_generator(directory):
-    for obj_f in obj_files_generator(directory):
+def folders_generator(directory):
+    for obj_f in files_generator(directory):
         yield os.path.dirname(obj_f)
 
 def generate_object_directory_metadata_file(file_paths):
@@ -30,7 +29,7 @@ def create_habitat_object_config_file(file_path, config_dict=DEFAULT_HABITAT_OBJ
     with open( f'{file_path.parent / file_path.stem}.object_config.json', 'w') as f: 
         json.dump(config_dict, f, indent=4)
 
-def add_metadata_to_object_dir(directory):
-    file_paths =  list(obj_files_generator(directory))
+def add_metadata_to_object_dir(directory, extension='obj', config_dict=DEFAULT_HABITAT_OBJ_CONFIG):
+    file_paths =  list(files_generator(directory, extension))
     generate_object_directory_metadata_file(file_paths)
-    for p in file_paths: create_habitat_object_config_file(p)
+    for p in file_paths: create_habitat_object_config_file(p, config_dict)

@@ -1,5 +1,12 @@
 # Rough README
 
+## TODO:
+    - [ ] change the way semantic info is stored. 
+        - [ ] The image should have a semantic IDs 
+        - [ ] The metadata should link the semantic ID to an object ID (cup, table, ...) and object type (string name) 
+        - [ ] The dataloader should be adapted accordingly
+    - [ ] Confirm that all chairs are correctly oriented. Plot a grid of all chairs in their zero pose.
+
 ## Setup
 
 Install Mamba
@@ -7,19 +14,14 @@ Install Mamba
 ```
 mamba create -n habitat python=3.8 cmake=3.14.0
 mamba activate habitat
-<!-- mamba install habitat-sim withbullet -c conda-forge -c aihabitat -->
 mamba install habitat-sim headless -c conda-forge -c aihabitat
 mamba install -c conda-forge wandb quaternion
 
-<!-- mamba install pytorch==1.10.0 torchvision==0.11.0 torchaudio==0.10.0 cudatoolkit=11.3 -c pytorch -c conda-forge -->
-<!-- mamba install -c pytorch faiss-cpu faiss-gpu -->
-
-pip install distance-map bresenham python-opencv  magnum git+https://github.com/lucasb-eyer/pydensecrf.git
+pip install distance-map bresenham opencv-python magnum git+https://github.com/lucasb-eyer/pydensecrf.git
 
 git clone --branch stable https://github.com/facebookresearch/habitat-lab.git
 cd habitat-lab
-pip install -e habitat-lab
-pip install -e habitat-baselines
+pip install habitat-lab habitat-baselines
 rm -rf habitat-lab/
 ```
 

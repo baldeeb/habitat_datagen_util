@@ -1,11 +1,9 @@
-# from habitat_tools.utils.visualizations import maps
 from distancemap import distance_map_from_binary_matrix 
 from quaternion import from_rotation_vector
 from bresenham import bresenham
 import numpy as np
 
 
-# TODO: RENAME: get poses of robot facing objects
 class ObjectAndRobotPoseGenerator:
     def __init__(self, sim, config):
         self.config = config
@@ -15,8 +13,8 @@ class ObjectAndRobotPoseGenerator:
         self._min_obj2rob_dist_m = config['_min_obj2rob_dist_m'] 
         self._max_obj2rob_dist_m = config['_max_obj2rob_dist_m'] 
         self._min_path_dist_from_obstacles = config['_min_path_dist_from_obstacles'] 
-        self._sample_count = config['_sample_count'] if '_sample_count' in config else 100  # can be None
-        self._height = 0 # sim.pathfinder.get_bounds()[0][1]  # get bounding box minumum
+        self._sample_count = config['_sample_count']
+        self._height = 0 #sim.pathfinder.get_random_navigable_point()[1]  # sim.pathfinder.get_bounds()[0][1]  # get bounding box minumum
         self._height_fixed = False
         self._sim = sim
 
@@ -27,16 +25,20 @@ class ObjectAndRobotPoseGenerator:
         min_clearence_px = np.ceil(self._min_obj_clearence_m / self._m_per_px)
         obj_px = np.stack(np.where(dist_map > min_clearence_px), axis=0)  # [2, N]
         rob_px = np.stack(np.where(dist_map > self._min_rob_clearence_m), axis=0)  # [2, N]
+        self._dist_map_m = dist_map * self._m_per_px
 
         if obj_px.shape[1] == 0 :
             raise RuntimeError('Cound not find valid positions to place object...')
         if rob_px.shape[1] == 0:
             raise RuntimeError('Cound not find valid positions to place robot...')
 
-        obj_px, rob_px = self._sample_pairs(obj_px, rob_px, count=self._sample_count)
-        dist_map_m = dist_map * self._m_per_px
-        obj_px, rob_px = self._filter_sampled_rob2obj_points(obj_px, rob_px, dist_map_m)
+        # obj_px, rob_px = self._sample_pairs(obj_px, rob_px, count=self._sample_count)
+        # obj_px, rob_px = self._filter_sampled_rob2obj_points(obj_px, rob_px, self._dist_map_m)
+        obj_px, rob_px = self._new_sampling_fx(obj_px, rob_px, count=self._sample_count)
         
+        if obj_px.shape[1] > self._sample_count: obj_px = obj_px[:, :self._sample_count]
+        if rob_px.shape[1] > self._sample_count: rob_px = rob_px[:, :self._sample_count]
+
         obj_xyz = self._ij_to_xyz(obj_px)  # [3, M]
         rob_xyz = self._ij_to_xyz(rob_px)  # [3, M]
         rob_thetas = np.array( [ self._get_theta_a2b(a, b) \
@@ -62,7 +64,30 @@ class ObjectAndRobotPoseGenerator:
         paired_rob_pxs = rob_pxs[:, pair_idxs[0, :]]
         paired_obj_pxs = obj_pxs[:, pair_idxs[1, :]]
         return paired_obj_pxs, paired_rob_pxs
+    
 
+    def _new_sampling_fx(self, obj_pxs, rob_pxs, count):
+        rob_count, obj_count = rob_pxs.shape[1], obj_pxs.shape[1]
+        pair_idxs = np.mgrid[:rob_count, :obj_count].reshape(2, -1)
+        n_pairs = pair_idxs.shape[1]
+        shuffled_idxs = np.arange(n_pairs)
+        np.random.shuffle(shuffled_idxs)
+        pair_idxs = pair_idxs[:, shuffled_idxs] # All pair combinations shuffled
+
+        # Devide n_pairs to chunks and filter until we have "count" pairs
+        sampled_obj, sampled_rob = np.empty((2,0)), np.empty((2,0))
+        for i in range(np.ceil(n_pairs/count).astype(np.int)):
+            j = min((i+1)*count, n_pairs)
+            pairs = pair_idxs[:, i*count:j]
+            paired_rob_pxs = rob_pxs[:, pairs[0, :]]
+            paired_obj_pxs = obj_pxs[:, pairs[1, :]]
+            obj_px, rob_px = self._filter_sampled_rob2obj_points(paired_rob_pxs, 
+                                                                 paired_obj_pxs, 
+                                                                self._dist_map_m)
+            sampled_obj = np.concatenate([sampled_obj, np.stack(obj_px)], axis=1)
+            sampled_rob = np.concatenate([sampled_rob, np.stack(rob_px)], axis=1)
+            if j == n_pairs or len(sampled_obj) >= count: break
+        return np.array(sampled_obj), np.array(sampled_rob)
 
     # Filter unwanted pairs
     def _filter_sampled_rob2obj_points(self, obj_pxs, rob_pxs, dist_map_m):
@@ -75,10 +100,10 @@ class ObjectAndRobotPoseGenerator:
         min_rob2obj_dist_px = self._min_obj2rob_dist_m / self._m_per_px
         max_rob2obj_dist_px = self._max_obj2rob_dist_m / self._m_per_px
         px_dist = np.linalg.norm(obj_pxs - rob_pxs, axis=0)
-        sparse_idxs = np.stack(np.where((min_rob2obj_dist_px <= px_dist) & (px_dist <= max_rob2obj_dist_px)), axis=0)  # 2 x N  
+        sparse_idxs = np.where((min_rob2obj_dist_px <= px_dist) & (px_dist <= max_rob2obj_dist_px))[0]
         # Remove pairs with obstructed view
         unobstructed_idxs = []
-        for i in sparse_idxs.squeeze():
+        for i in sparse_idxs:
             line = np.array(list(bresenham(
                     int(obj_pxs[0, i]), int(obj_pxs[1, i]), 
                     int(rob_pxs[0, i]), int(rob_pxs[1, i]))))
@@ -90,7 +115,7 @@ class ObjectAndRobotPoseGenerator:
     def _ij_to_xyz(self, ij):
         bounds = np.array(self._sim.pathfinder.get_bounds())
         zx = ij * self._m_per_px + bounds[0, [2, 0], np.newaxis] # [2, N]
-        return np.stack([zx[1], self._height * np.ones(zx.shape[1]), zx[0]], axis=0) # [3, N]
+        return np.stack([zx[1], 0 * np.ones(zx.shape[1]), zx[0]], axis=0) # [3, N]
         
 
     def _get_theta_a2b(self, a, b):

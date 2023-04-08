@@ -1,35 +1,105 @@
 # Configuration file used for with the habitat data generation tools
 
 objects:  # Shapenet objects habe been tested
-  direcotry: '/home/baldeeb/Code/DINO-ViT-Experiments/data/downloaded/objects/shapenet'
+  direcotry: '/home/baldeeb/Code/habitat-datagen-utils/data/downloaded/objects/shapenet'
+  format: 'glb'
   chairs:  # A list of shapenet chairs 
-      # With Armrest
-      - '6b95ac6189a395d3fa8cf35dd917fad6'
-      - '1bbe463ba96415aff1783a44a88d6274'
-      - 'd670d3919c87c91cf1783a44a88d6274'
-      - 'edb86d102237488ce8f8c11a24c52ebb'
-      - '7228564fe629f578e8f8c11a24c52ebb'
-      - 'b2d6c064af0c735f1783a44a88d6274'
-      - '9c5b246616974299f1783a44a88d6274'
-      - '4dc7fe6e98c4db21d79b19c7c4f0e293'
-      - 'f4b141ab64a6c4e771a782a4379556c7'
-      - '5e685e076287215be8f8c11a24c52ebb'
-      - '473a9ac8376e5a15ae0b06ef692d1ec7'
-      - '8b6f6304674b1280d6cb6d27840b9d7d'
-      - 'a1555d448a9d6fa0666bc0b629562709'
-      - 'e955b63a4bd738857178717457aa5d20'
-      - '7ee46c6f7c028fc6d661ff085a0f14b7'
-      - '675e25ef07ef717cc8bd7a04c9659f1'
-      - '77d48297d441c7f5bbc0e8a3b6521117'
+    train:
+      # Swivel chair with armrest
+      - 'edb86d102237488ce8f8c11a24c52ebb'  # Blue and grey
+      - 'a1555d448a9d6fa0666bc0b629562709'  # Brown and white office chair 
+      - 'e955b63a4bd738857178717457aa5d20'  # Purple and white
+      - 'f3ece63fb46fb129eb71e9117b10dee6'  # pinkish red chair 
+      - '6ebfa5329b0d1439d4ea3f4c41b1b9bb'  # Purple chair with off white legs
+      - 'bf91d0169eae3bfdd810b14a81e12eca'  # Orange and office chair
+      - '4363eb3e65ada91ae3f7a74e12a274ef'  # Blue office chair 
+      - '88aec853dcb10d526efa145e9f4a2693'  # Grey and purple office chair
+          # Black & white
+      - '6b95ac6189a395d3fa8cf35dd917fad6'  # Black and white
+      - '1bbe463ba96415aff1783a44a88d6274'  # Black and white
+      - 'b2d6c064af0c735f1783a44a88d6274'   # Black and white with black bench
+      - 'd670d3919c87c91cf1783a44a88d6274'  # Black and white
+      - '9c5b246616974299f1783a44a88d6274'  # Black and white
+      - '5e685e076287215be8f8c11a24c52ebb'  # Black and white legs and handles
+      - 'e8187497dd464b62f91663a74ccd2338'  # White and black office chair
+      - '2ca91e56bef8cb5034af953b663e921b'  # Black and white office chair
 
-      # No Armrest
-      - 'd66fe5dc263064a2bc38fb3cb9934c71'
-      - 'e127ed243617eaf04904d89e9169817b'
-      - '20b0a82068ae767c34cc22336880d45c'
-      - '1b938d400e1a340b17b431cae0dd70ed'
-      - '212ad23c8afe1f9a9d297e74104d3ac3'
-      - '891f1cd440afa11517b431cae0dd70ed'
-      - '523269ef7703a120cf004563556ddb36'
-      - '654b7415b53b5138fc5718d28351c534'
-      - '791c14d53bd565f56ba14bfd91a75020'
-      - '20964e03ef001d8910684e111251a45'
+      #     # Unique
+      # - '374e87fdee7711491e046801e2748f1a'  # Dark green with grey legs slightly couch like     ++
+      # - '7228564fe629f578e8f8c11a24c52ebb'  # Tan Bround and White                              ++
+      # - 'f4b141ab64a6c4e771a782a4379556c7'  # Orange and dark grey                              ++
+      # - 'f73dde8df5d0e5c7f91663a74ccd2338'  # White balck office like stool (tall) chair        ++
+      # - '3fc6ab5d3c52c128d810b14a81e12eca'  # Orange and white gamer chair                      ++  
+      # - '4dc7fe6e98c4db21d79b19c7c4f0e293'  # More couch like all white swivel                  --
+      # - '8b6f6304674b1280d6cb6d27840b9d7d'  # Weirdly fake all white chair with black contours  --
+      # - '7ee46c6f7c028fc6d661ff085a0f14b7'  # weird neon green couch like chair                 --    
+      # - '675e25ef07ef717cc8bd7a04c9659f1'   # Minimal hallow back white chair                   --
+      # - '212ad23c8afe1f9a9d297e74104d3ac3'  # Very white couch like chair                       --
+      
+      # # No Armrest
+      # - '20964e03ef001d8910684e111251a45'   # Blue chair whith white legs  ++
+      # - 'fd05e5d8fd82508e6d0a0d492005859c'  # Simple grey and white chair  ++
+      # - 'e127ed243617eaf04904d89e9169817b'  # Slim plastic purple chair
+      # - '891f1cd440afa11517b431cae0dd70ed'  # White slim plastic chair
+      # - '523269ef7703a120cf004563556ddb36'  # White laid back couch like 
+      # - '654b7415b53b5138fc5718d28351c534'  # White slim chair 
+      # - '791c14d53bd565f56ba14bfd91a75020'  # very white slim chair  
+      # - '20b0a82068ae767c34cc22336880d45c'  # Plain fake black chair --
+      #       # Unique
+      # - 'd66fe5dc263064a2bc38fb3cb9934c71'  # Bright Pick chair  ---
+      # - '1b938d400e1a340b17b431cae0dd70ed'  # very white laidback chair  ++
+       
+    test:
+      # Armrest 
+      - '511e6440fad9bfa81fc8b86678ea0c8b'  # Black and grey office chair ++
+      - 'e9e8f839c77a03498307335ef66226a6'  # Offwhite and black chair
+      - 'f93bbb0ae5d66c075fb57c89160d1cb7'  # Red and black chair
+      - '91b738d40201bf18a413908c0e169330'  # A bit different dark purple chair with black legs
+      - 'ba9b35c49d861f7f4e994a4c55e56a4f'  # Off white chair
+      - '7520005e70a54526c266013a269e5f81'  # White chair with grey legs
+      - 'a78d31c9dd3cea02f91663a74ccd2338'  # Orange and grey office chair
+          # Black & white
+      - 'cacaca67988f6686f91663a74ccd2338'  # Black and white office chair
+      - '7e9448da23c3387754e9211d1e7afbcf'  # White office chair with black legs
+      - '6f36520144753550f91663a74ccd2338'  # White and black office chair
+      - '473a9ac8376e5a15ae0b06ef692d1ec7'  # White and black office chair with odd slim legs white and black  --
+      - '42c27211881f1377d7f7a4c4609b0913'  # White and balck office chair
+      - '903a14845425ca3176e30bf48cd56fcd'  # Black and white office chair
+
+      #     # Fake looking
+      # - '5893038d979ce1bb725c7e2164996f48'  # Black and very white chair 
+      # - '64a699cf5b2a43473f7e27638e63d848'  # Fake looking white and black chair
+      
+      #     # Unique
+      # - 'd794f296dbe579101e046801e2748f1a'  # Orange couch like 
+      # - '3b2d9328ab28f70122c4f7f8c92935f0'  # Orange chair a bit couch like 
+      # - 'f441e4f7f123bde3cd7677199133326a'  # Fake looking white office chair
+
+output:
+  relative_directory: 'data/generated/curated_1/test'
+  overwrite: False
+
+simulation: 
+  mode: 'Teleport' #'Teleport', 'Kinematic'
+  num_scenes_to_use: 100
+  image_count: 25
+
+  sensor:
+    height_range: [0.25, 1.0]
+    pitch_noise: 0.1 
+    distance_to_fixate_on: 4.0 # meters
+
+  simulator:
+    gpu_device_id: 1
+    width: 640
+    height: 480
+    color_sensor_hfov_1st_person: 60.2
+    semantic_sensor_hfov_1st_person: 60.2
+    depth_sensor_hfov_1st_person: 60.2 # 55.9,
+    default_agent: 0
+    color_sensor_1st_person: True  # RGB sensor
+    color_sensor_3rd_person: False  # RGB sensor 3rd person
+    depth_sensor_1st_person: True  # Depth sensor
+    semantic_sensor_1st_person: True  # Semantic sensor
+    seed: 1
+    enable_physics: True  # enable dynamics simulation
